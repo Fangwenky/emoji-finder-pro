@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Finder Pro 🔍</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 30px;
+        }
+        .search-box {
+            background: white;
+            border-radius: 50px;
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        .search-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1.2rem;
+            padding: 10px;
+        }
+        .search-box span {
+            font-size: 1.5rem;
+        }
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+        .category-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        .category-btn:hover, .category-btn.active {
+            background: white;
+            color: #667eea;
+        }
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 15px;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .emoji-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .emoji-item:hover {
+            background: #f0f0f5;
+            transform: scale(1.1);
+        }
+        .emoji-char {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+        .emoji-name {
+            font-size: 0.7rem;
+            color: #666;
+            text-align: center;
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Emoji Finder Pro</h1>
+        <p class="subtitle">搜索、复制有趣的 Emoji 😄</p>
+        
+        <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="search" placeholder="搜索 Emoji... (例如: 笑, 心, 星)" autofocus>
+        </div>
+        
+        <div class="categories">
+            <button class="category-btn active" data-cat="all">全部</button>
+            <button class="category-btn" data-cat="smile">😀 笑脸</button>
+            <button class="category-btn" data-cat="heart">❤️ 心形</button>
+            <button class="category-btn" data-cat="animal">🐱 动物</button>
+            <button class="category-btn" data-cat="food">🍕 食物</button>
+            <button class="category-btn" data-cat="sport">⚽ 运动</button>
+            <button class="category-btn" data-cat="tech">💻 科技</button>
+        </div>
+        
+        <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+    
+    <div class="toast" id="toast">已复制到剪贴板! 📋</div>
+
+    <script>
+        const emojis = [
+            { char: '😀', name: '笑脸', cat: 'smile', keywords: '笑 开心 高兴' },
+            { char: '😃', name: '大笑', cat: 'smile', keywords: '笑 开心 张嘴' },
+            { char: '😄', name: '笑眼', cat: 'smile', keywords: '笑 开心 眼睛' },
+            { char: '😁', name: '露齿笑', cat: 'smile', keywords: '笑 牙齿 开心' },
+            { char: '😅', name: '尴尬笑', cat: 'smile', keywords: '笑 汗 尴尬' },
+            { char: '😂', name: '笑哭', cat: 'smile', keywords: '笑 哭 开心 笑到哭' },
+            { char: '🤣', name: '滚地笑', cat: 'smile', keywords: '笑 滚 开心' },
+            { char: '😊', name: '微笑', cat: 'smile', keywords: '笑 害羞 温柔' },
+            { char: '😇', name: '天使', cat: 'smile', keywords: '天使 善良 纯真' },
+            { char: '🥰', name: '爱心眼', cat: 'heart', keywords: '爱 喜欢 心 眼睛' },
+            { char: '😍', name: '花痴眼', cat: 'heart', keywords: '爱 喜欢 眼睛' },
+            { char: '🤩', name: '星星眼', cat: 'heart', keywords: '喜欢 星星 兴奋' },
+            { char: '😘', name: '飞吻', cat: 'heart', keywords: '爱 吻 飞吻' },
+            { char: '💕', name: '双心', cat: 'heart', keywords: '爱 心 友情' },
+            { char: '💖', name: '闪烁心', cat: 'heart', keywords: '爱 心 闪亮' },
+            { char: '💗', name: '成长心', cat: 'heart', keywords: '爱 心 成长' },
+            { char: '❤️', name: '红心', cat: 'heart', keywords: '爱 心 红色' },
+            { char: '💙', name: '蓝心', cat: 'heart', keywords: '爱 心 蓝色' },
+            { char: '💚', name: '绿心', cat: 'heart', keywords: '爱 心 绿色' },
+            { char: '💛', name: '黄心', cat: 'heart', keywords: '爱 心 黄色' },
+            { char: '🐱', name: '猫咪', cat: 'animal', keywords: '猫 喵 宠物' },
+            { char: '🐶', name: '狗狗', cat: 'animal', keywords: '狗 汪 宠物' },
+            { char: '🐰', name: '兔子', cat: 'animal', keywords: '兔 兔子 可爱' },
+            { char: '🦊', name: '狐狸', cat: 'animal', keywords: '狐狸 动物' },
+            { char: '🐼', name: '熊猫', cat: 'animal', keywords: '熊猫 中国 可爱' },
+            { char: '🦁', name: '狮子', cat: 'animal', keywords: '狮子 动物 王' },
+            { char: '🐸', name: '青蛙', cat: 'animal', keywords: '青蛙 动物 绿' },
+            { char: '🦋', name: '蝴蝶', cat: 'animal', keywords: '蝴蝶 昆虫 美丽' },
+            { char: '🐝', name: '蜜蜂', cat: 'animal', keywords: '蜜蜂 昆虫 忙' },
+            { char: '🍕', name: '披萨', cat: 'food', keywords: '披萨 食物 意大利' },
+            { char: '🍔', name: '汉堡', cat: 'food', keywords: '汉堡 食物 快餐' },
+            { char: '🍟', name: '薯条', cat: 'food', keywords: '薯条 食物 快餐' },
+            { char: '🌮', name: '卷饼', cat: 'food', keywords: '卷饼 食物 墨西哥' },
+            { char: '🍣', name: '寿司', cat: 'food', keywords: '寿司 食物 日本' },
+            { char: '🍰', name: '蛋糕', cat: 'food', keywords: '蛋糕 甜点 生日' },
+            { char: '🧁', name: '纸杯蛋糕', cat: 'food', keywords: '蛋糕 甜点 可爱' },
+            { char: '☕', name: '咖啡', cat: 'food', keywords: '咖啡 饮料 提神' },
+            { char: '🍺', name: '啤酒', cat: 'food', keywords: '啤酒 饮料 酒' },
+            { char: '⚽', name: '足球', cat: 'sport', keywords: '足球 运动 球' },
+            { char: '🏀', name: '篮球', cat: 'sport', keywords: '篮球 运动 球' },
+            { char: '🏈', name: '橄榄球', cat: 'sport', keywords: '橄榄球 运动 美国' },
+            { char: '⚾', name: '棒球', cat: 'sport', keywords: '棒球 运动 球' },
+            { char: '🎾', name: '网球', cat: 'sport', keywords: '网球 运动 球' },
+            { char: '🏐', name: '排球', cat: 'sport', keywords: '排球 运动 球' },
+            { char: '🏆', name: '奖杯', cat: 'sport', keywords: '奖杯 胜利 第一' },
+            { char: '🥇', name: '金牌', cat: 'sport', keywords: '金牌 第一 胜利' },
+            { char: '💻', name: '电脑', cat: 'tech', keywords: '电脑 科技 工作' },
+            { char: '📱', name: '手机', cat: 'tech', keywords: '手机 科技 通讯' },
+            { char: '⌨️', name: '键盘', cat: 'tech', keywords: '键盘 电脑 输入' },
+            { char: '🖥️', name: '显示器', cat: 'tech', keywords: '电脑 显示器 屏幕' },
+            { char: '💾', name: '磁盘', cat: 'tech', keywords: '存储 数据 磁盘' },
+            { char: '🔋', name: '电池', cat: 'tech', keywords: '电池 充电 能源' },
+            { char: '🚀', name: '火箭', cat: 'tech', keywords: '火箭 发射 太空' },
+            { char: '⭐', name: '星星', cat: 'heart', keywords: '星 星星 闪烁' },
+            { char: '🌙', name: '月亮', cat: 'heart', keywords: '月亮 夜 睡觉' },
+            { char: '☀️', name: '太阳', cat: 'heart', keywords: '太阳 晴天 阳光' },
+            { char: '🌈', name: '彩虹', cat: 'heart', keywords: '彩虹 彩色 美丽' },
+            { char: '🔥', name: '火', cat: 'heart', keywords: '火 热门 酷' },
+            { char: '💯', name: '一百分', cat: 'heart', keywords: '100 满分 完美' },
+            { char: '✨', name: '闪亮', cat: 'heart', keywords: '闪 闪烁 魔法' },
+            { char: '🎉', name: '派对', cat: 'heart', keywords: '派对 庆祝 气球' },
+            { char: '🎊', name: '彩带球', cat: 'heart', keywords: '庆祝 彩带 派对' },
+            { char: '👍', name: '点赞', cat: 'smile', keywords: '赞 好 同意' },
+            { char: '👎', name: '反对', cat: 'smile', keywords: '反对 差 不喜欢' },
+            { char: '👏', name: '鼓掌', cat: 'smile', keywords: '鼓掌 棒 庆祝' },
+            { char: '🙌', name: '举手', cat: 'smile', keywords: '开心 庆祝 胜利' },
+            { char: '🤝', name: '握手', cat: 'smile', keywords: '握手 合作 同意' },
+            { char: '🙏', name: '祈祷', cat: 'smile', keywords: '祈祷 感谢 恳求' },
+        ];
+
+        const emojiGrid = document.getElementById('emojiGrid');
+        const searchInput = document.getElementById('search');
+        const toast = document.getElementById('toast');
+        let currentCat = 'all';
+
+        function renderEmojis(filter = '') {
+            emojiGrid.innerHTML = '';
+            const filtered = emojis.filter(e => {
+                const matchCat = currentCat === 'all' || e.cat === currentCat;
+                const matchSearch = filter === '' || 
+                    e.name.includes(filter) || 
+                    e.keywords.includes(filter) ||
+                    e.char.includes(filter);
+                return matchCat && matchSearch;
+            });
+            
+            filtered.forEach(e => {
+                const div = document.createElement('div');
+                div.className = 'emoji-item';
+                div.innerHTML = `<span class="emoji-char">${e.char}</span><span class="emoji-name">${e.name}</span>`;
+                div.onclick = () => copyEmoji(e.char);
+                emojiGrid.appendChild(div);
+            });
+        }
+
+        function copyEmoji(char) {
+            navigator.clipboard.writeText(char);
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelector('.category-btn.active').classList.remove('active');
+                btn.classList.add('active');
+                currentCat = btn.dataset.cat;
+                renderEmojis(searchInput.value);
+            };
+        });
+
+        searchInput.oninput = () => renderEmojis(searchInput.value);
+
+        renderEmojis();
+    </script>
+</body>
+</html>
